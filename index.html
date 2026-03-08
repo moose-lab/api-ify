@@ -575,17 +575,55 @@
 </div>
 
 <script>
-function handleSubmit() {
-  const email = document.getElementById('email').value;
+async function handleSubmit() {
+  const emailInput = document.getElementById('email');
+  const email = emailInput.value;
   if (!email || !email.includes('@')) {
-    document.getElementById('email').style.borderLeft = '2px solid #ff4444';
+    emailInput.style.borderLeft = '2px solid #ff4444';
     return;
   }
-  document.getElementById('form').style.display = 'none';
-  document.getElementById('success').style.display = 'block';
-  // In production: POST to your waitlist backend
-  console.log('Waitlist signup:', email);
+
+  const button = document.querySelector('#form button');
+  const originalText = button.textContent;
+  button.disabled = true;
+  button.textContent = 'Joining...';
+
+  try {
+    const response = await fetch('/api/waitlist', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email })
+    });
+
+    if (!response.ok) {
+      throw new Error('Request failed');
+    }
+
+    document.getElementById('form').style.display = 'none';
+    document.getElementById('success').style.display = 'block';
+  } catch (err) {
+    const errorEl = document.getElementById('form-error');
+    if (errorEl) {
+      errorEl.textContent = 'Something went wrong. Please try again.';
+      errorEl.style.display = 'block';
+    } else {
+      const msg = document.createElement('p');
+      msg.id = 'form-error';
+      msg.className = 'form-note';
+      msg.style.color = '#ff4444';
+      msg.textContent = 'Something went wrong. Please try again.';
+      document.getElementById('form').insertAdjacentElement('afterend', msg);
+    }
+    button.disabled = false;
+    button.textContent = originalText;
+  }
 }
+
+document.getElementById('email').addEventListener('input', () => {
+  document.getElementById('email').style.borderLeft = '';
+  const errorEl = document.getElementById('form-error');
+  if (errorEl) errorEl.style.display = 'none';
+});
 
 document.getElementById('email').addEventListener('keydown', (e) => {
   if (e.key === 'Enter') handleSubmit();
